@@ -110,6 +110,15 @@ work. Originally developed on Samsung Tab A8 (UWE5622 controller).
 | `org.lineageos.dualaudio.SET_CODEC` | `mac`, `codec` (SBC\|AAC\|…) | Developer helper: set stored codec preference (only renegotiates when the device is active) |
 | `org.lineageos.dualaudio.SET_ACTIVE` | `mac` | Developer helper: make a specific peer the A2DP active device |
 
+## Related docs
+
+Architecture, security model, and upstreaming notes for the
+Bluetooth-APEX side live in the fork:
+
+- [DUAL_A2DP.md](https://github.com/HamelinPorts/android_packages_modules_Bluetooth/blob/dual-a2dp/docs/DUAL_A2DP.md) — overall architecture + patch surface
+- [REBASE.md](https://github.com/HamelinPorts/android_packages_modules_Bluetooth/blob/dual-a2dp/docs/REBASE.md) — keeping the fork in sync with upstream LineageOS
+- [UPSTREAM.md](https://github.com/HamelinPorts/android_packages_modules_Bluetooth/blob/dual-a2dp/docs/UPSTREAM.md) — notes for submitting to AOSP Gerrit
+
 ## License
 
 Apache-2.0.
