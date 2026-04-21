@@ -184,7 +184,7 @@ public final class BtStateProvider {
                 if (name == null || name.isEmpty()) name = d.getAddress();
 
                 String codec = connected ? queryCodec(d) : "";
-                Integer volBoxed = volumes.get(d.getAddress().toUpperCase(java.util.Locale.US));
+                Integer volBoxed = volumes.get(DualAudioPref.macSuffix(d.getAddress()));
                 int volume = volBoxed == null ? -1 : volBoxed;
 
                 out.add(new DeviceInfo(d, name, d.getAddress(),
@@ -282,9 +282,12 @@ public final class BtStateProvider {
     }
 
     /**
-     * Parse Settings.Global.a2dp_dup_peer_volumes into a MAC→volume map.
-     * Format written by DualAudioCoordinator: "MAC:vol,MAC:vol,...".
-     * Empty map on any parse failure — slider falls back to its XML default.
+     * Parse Settings.Global.a2dp_dup_peer_volumes into a suffix→volume
+     * map. Format written by DualAudioCoordinator: "SUFFIX:vol,SUFFIX:vol,..."
+     * where SUFFIX is the last 5 chars of the peer MAC (the only part
+     * invariant across Android's per-process MAC anonymization).
+     * Empty map on any parse failure — slider falls back to its XML
+     * default.
      */
     private Map<String, Integer> readPublishedVolumes() {
         Map<String, Integer> out = new HashMap<>();
@@ -300,9 +303,10 @@ public final class BtStateProvider {
             int colon = entry.lastIndexOf(':');
             if (colon < 0) continue;
             try {
-                String mac = entry.substring(0, colon).toUpperCase(java.util.Locale.US);
+                String suffix = DualAudioPref.macSuffix(entry.substring(0, colon));
+                if (suffix.isEmpty()) continue;
                 int vol = Integer.parseInt(entry.substring(colon + 1));
-                out.put(mac, vol);
+                out.put(suffix, vol);
             } catch (NumberFormatException ignored) {
             }
         }

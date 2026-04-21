@@ -15,6 +15,7 @@ import android.util.Log;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public final class DualAudioPref {
@@ -23,9 +24,16 @@ public final class DualAudioPref {
 
     /**
      * Settings.Global key for the per-device include list. Comma-separated
-     * uppercase MAC addresses (e.g. "AA:BB:CC:DD:EE:FF,11:22:33:44:55:66").
+     * uppercase MAC **suffixes** — last 5 chars, e.g. "AA:3D,91:26".
      * Empty / unset means "no explicit filter — promote all connected
-     * non-active A2DP peers". Non-empty means "only these MACs".
+     * non-active A2DP peers". Non-empty means "only these suffixes".
+     *
+     * Suffix-only (not the full MAC) because Settings.Global is
+     * world-readable by every app with no permission; storing full MACs
+     * would leak paired-device identifiers. Coordinator matches on
+     * suffix anyway (Android per-process MAC anonymization leaves the
+     * last two octets invariant).
+     *
      * Read by DualAudioCoordinator.autoPromoteConnectedPeers().
      */
     public static final String KEY_MEMBERS = "a2dp_dup_members";
@@ -77,17 +85,28 @@ public final class DualAudioPref {
     }
 
     /**
-     * Returns the set of MACs explicitly in the include list. Returns empty
-     * set both when the filter is unset AND when the list is the empty
-     * string — use {@link #isFilterUnset(Context)} to distinguish.
+     * Last-5-chars uppercase suffix of a MAC (e.g. "AA:3D"). The
+     * coordinator uses the same value for cross-process matching since
+     * the first four octets are per-process-anonymized on modern Android.
+     */
+    public static String macSuffix(String mac) {
+        if (mac == null || mac.length() < 5) return "";
+        return mac.substring(mac.length() - 5).toUpperCase(Locale.US);
+    }
+
+    /**
+     * Returns the set of MAC suffixes explicitly in the include list.
+     * Returns empty set both when the filter is unset AND when the list
+     * is the empty string — use {@link #isFilterUnset(Context)} to
+     * distinguish.
      */
     public static Set<String> getIncludedDeviceMacs(Context ctx) {
         String csv = Settings.Global.getString(ctx.getContentResolver(), KEY_MEMBERS);
         if (csv == null || csv.isEmpty()) return Collections.emptySet();
         Set<String> out = new HashSet<>();
-        for (String mac : csv.split(",")) {
-            String t = mac.trim();
-            if (!t.isEmpty()) out.add(t.toUpperCase());
+        for (String entry : csv.split(",")) {
+            String s = macSuffix(entry.trim());
+            if (!s.isEmpty()) out.add(s);
         }
         return out;
     }
@@ -96,14 +115,15 @@ public final class DualAudioPref {
     public static boolean isDeviceIncluded(Context ctx, String mac) {
         if (isFilterUnset(ctx)) return true;  // unset → all included
         Set<String> included = getIncludedDeviceMacs(ctx);
-        return included.contains(mac == null ? "" : mac.toUpperCase());
+        return included.contains(macSuffix(mac));
     }
 
     /**
      * Toggle {@code mac} in the include list. Takes an optional
      * {@code allOtherMacs} snapshot so that when the user flips the FIRST
-     * switch OFF from the "unset / all included" state, we materialize the
-     * list as "all others except this one" (matching UI expectations).
+     * switch OFF from the "unset / all included" state, we materialize
+     * the list as "all others except this one" (matching UI expectations).
+     * The list is persisted as MAC suffixes only.
      *
      * If {@code allOtherMacs} is null, the list is built as "just {mac}"
      * when included=true or cleared to "" when included=false.
@@ -111,8 +131,8 @@ public final class DualAudioPref {
     public static void setDeviceIncluded(Context ctx, String mac,
                                          boolean included,
                                          Set<String> allOtherMacs) {
-        if (mac == null || mac.isEmpty()) return;
-        String norm = mac.toUpperCase();
+        String norm = macSuffix(mac);
+        if (norm.isEmpty()) return;
 
         boolean unset = isFilterUnset(ctx);
         Set<String> current;
@@ -121,11 +141,13 @@ public final class DualAudioPref {
                 // Already-on-by-default; no transition needed.
                 return;
             }
-            // Materialize: filter becomes "all currently-connected other MACs".
+            // Materialize: filter becomes "all currently-connected other
+            // MAC suffixes".
             current = new HashSet<>();
             if (allOtherMacs != null) {
                 for (String m : allOtherMacs) {
-                    if (m != null && !m.isEmpty()) current.add(m.toUpperCase());
+                    String s = macSuffix(m);
+                    if (!s.isEmpty()) current.add(s);
                 }
             }
         } else {

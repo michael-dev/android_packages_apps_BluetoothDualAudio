@@ -2,6 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.lineageos.dualaudio">
 
+    <!--
+      Signature-level permission gating the org.lineageos.dualaudio.*
+      broadcast actions — SET_CODEC / SET_ACTIVE / SET_PEER_VOLUME /
+      DUMP_STATE. Only platform-signed callers (this app and the
+      Bluetooth APEX's DualAudioCoordinator) pass this check, which
+      prevents any 3rd-party app from triggering these privileged
+      side-effects via broadcast.
+    -->
+    <permission
+        android:name="org.lineageos.dualaudio.permission.CONTROL"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="org.lineageos.dualaudio.permission.CONTROL" />
+
     <!-- Settings.Global writes -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
     <!-- BluetoothA2dp.setActiveDevice (per-device primary selection; used
@@ -31,6 +44,7 @@
 
         <receiver
             android:name=".SetCodecReceiver"
+            android:permission="org.lineageos.dualaudio.permission.CONTROL"
             android:exported="true">
             <intent-filter>
                 <action android:name="org.lineageos.dualaudio.SET_CODEC" />
