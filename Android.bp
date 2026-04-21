@@ -1,0 +1,30 @@
+// BluetoothDualAudio — user-facing controller for simultaneous A2DP
+// playback to multiple Bluetooth sinks.
+//
+// Pairs with the DualAudioCoordinator overlay inside the Bluetooth APEX
+// (packages/modules/Bluetooth, dual-a2dp-phase2 branch). The app writes
+// Settings.Global.a2dp_dup_active, a2dp_dup_members,
+// a2dp_dup_coerce_codec; the coordinator reads them and orchestrates
+// AVDT/BTA state. Per-peer volume control uses a BroadcastReceiver hop
+// into the coordinator.
+//
+// Device-independent. Any LOS port can include it by adding
+//   PRODUCT_PACKAGES += BluetoothDualAudio
+// to its device.mk, provided the device builds against a Bluetooth
+// module carrying the matching overlay.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_app {
+    name: "BluetoothDualAudio",
+    srcs: ["src/**/*.java"],
+    resource_dirs: ["res"],
+    manifest: "AndroidManifest.xml",
+    sdk_version: "system_current",
+    certificate: "platform",
+    optimize: {
+        enabled: false,
+    },
+}
