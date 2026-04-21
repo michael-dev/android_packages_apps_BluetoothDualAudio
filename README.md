@@ -42,10 +42,28 @@ overlay is the engine.
 └───────────────────────────────┘         └───────────────────────────────┘
 ```
 
+## Dependencies
+
+The app by itself does **nothing useful**. It writes `Settings.Global`
+keys and fires broadcasts that are only interpreted by the
+`DualAudioCoordinator` class inside a patched Bluetooth APEX. Without
+that patched APEX, flipping the master switch has no effect on audio
+routing.
+
+You need **both** of these:
+
+**1. This app** (the UI) — this repo.
+
+**2. A patched Bluetooth module** carrying the Phase-2 dual-audio
+overlay. We maintain a fork at
+[`HamelinPorts/android_packages_modules_Bluetooth`](https://github.com/HamelinPorts/android_packages_modules_Bluetooth),
+branch `dual-a2dp`. It adds ~10 hook-point lines to AOSP-tracked
+files plus ~5 new overlay files for the coordinator, per-peer Tx
+registry, codec coercion, and AVRCP per-peer volume dispatch.
+
 ## Device integration
 
-Any LOS port that builds against a Bluetooth APEX carrying the
-`DualAudioCoordinator` overlay can add dual-audio by two lines:
+Three entries in your device tree wire it in:
 
 ```makefile
 # device.mk
@@ -57,11 +75,22 @@ PRODUCT_PACKAGES += BluetoothDualAudio
 {
   "repository": "HamelinPorts/android_packages_apps_BluetoothDualAudio",
   "target_path": "packages/apps/BluetoothDualAudio"
+},
+{
+  "repository": "HamelinPorts/android_packages_modules_Bluetooth",
+  "target_path": "packages/modules/Bluetooth",
+  "remote": "github",
+  "revision": "dual-a2dp"
 }
 ```
 
+After that, `breakfast <device> && repo sync` pulls both repos into
+your tree, and `m` builds the app + the patched Bluetooth APEX.
+
 The app is platform-signed (needs `BLUETOOTH_PRIVILEGED`). It makes
-no device-specific assumptions.
+no device-specific assumptions — any device that handles a minimum
+of two simultaneous A2DP connections at the controller level should
+work. Tested on SM-X205 (UWE5622 controller).
 
 ## Settings.Global keys
 
