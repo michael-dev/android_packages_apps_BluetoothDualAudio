@@ -184,7 +184,7 @@ public final class BtStateProvider {
                 if (name == null || name.isEmpty()) name = d.getAddress();
 
                 String codec = connected ? queryCodec(d) : "";
-                Integer volBoxed = volumes.get(DualAudioPref.macSuffix(d.getAddress()));
+                Integer volBoxed = volumes.get(DualAudioPref.normalizeMac(d.getAddress()));
                 int volume = volBoxed == null ? -1 : volBoxed;
 
                 out.add(new DeviceInfo(d, name, d.getAddress(),
@@ -282,31 +282,33 @@ public final class BtStateProvider {
     }
 
     /**
-     * Parse Settings.Global.a2dp_dup_peer_volumes into a suffix→volume
-     * map. Format written by DualAudioCoordinator: "SUFFIX:vol,SUFFIX:vol,..."
-     * where SUFFIX is the last 5 chars of the peer MAC (the only part
-     * invariant across Android's per-process MAC anonymization).
-     * Empty map on any parse failure — slider falls back to its XML
-     * default.
+     * Read per-peer volumes from {@link DualAudioProvider}. Returns a
+     * full-MAC → volume map. Empty map on any failure — slider falls
+     * back to its XML default.
      */
     private Map<String, Integer> readPublishedVolumes() {
         Map<String, Integer> out = new HashMap<>();
-        String csv;
+        android.os.Bundle b;
         try {
-            csv = Settings.Global.getString(
-                    mCtx.getContentResolver(), "a2dp_dup_peer_volumes");
+            b = mCtx.getContentResolver().call(
+                    DualAudioProvider.URI,
+                    DualAudioProvider.METHOD_GET_VOLUMES,
+                    null, null);
         } catch (Throwable t) {
             return out;
         }
-        if (csv == null || csv.isEmpty()) return out;
-        for (String entry : csv.split(",")) {
-            int colon = entry.lastIndexOf(':');
-            if (colon < 0) continue;
+        if (b == null) return out;
+        java.util.ArrayList<String> pairs =
+                b.getStringArrayList(DualAudioProvider.EXTRA_PAIRS);
+        if (pairs == null) return out;
+        for (String pair : pairs) {
+            int eq = pair.lastIndexOf('=');
+            if (eq < 0) continue;
             try {
-                String suffix = DualAudioPref.macSuffix(entry.substring(0, colon));
-                if (suffix.isEmpty()) continue;
-                int vol = Integer.parseInt(entry.substring(colon + 1));
-                out.put(suffix, vol);
+                String mac = DualAudioPref.normalizeMac(pair.substring(0, eq));
+                if (mac.isEmpty()) continue;
+                int vol = Integer.parseInt(pair.substring(eq + 1));
+                out.put(mac, vol);
             } catch (NumberFormatException ignored) {
             }
         }

@@ -193,12 +193,12 @@ public class DualAudioSettingsActivity extends Activity {
 
             Switch sw = row.findViewById(R.id.dev_enable);
             // Primary is implicitly included (it's the source); disable toggle.
-            final String devSuffix = DualAudioPref.macSuffix(info.mac);
+            final String devMac = DualAudioPref.normalizeMac(info.mac);
             if (info.activePrimary) {
                 sw.setChecked(true);
                 sw.setEnabled(false);
             } else {
-                sw.setChecked(filterUnset || included.contains(devSuffix));
+                sw.setChecked(filterUnset || included.contains(devMac));
                 sw.setEnabled(info.connected);
                 final String mac = info.mac;
                 sw.setOnCheckedChangeListener((v, checked) -> {
@@ -217,7 +217,7 @@ public class DualAudioSettingsActivity extends Activity {
             }
 
             if (info.activePrimary
-                    || ((filterUnset || included.contains(devSuffix)) && info.connected)) {
+                    || ((filterUnset || included.contains(devMac)) && info.connected)) {
                 includedEnabledCount++;
             }
 
