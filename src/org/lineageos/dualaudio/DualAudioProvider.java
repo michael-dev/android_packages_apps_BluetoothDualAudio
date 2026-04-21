@@ -123,8 +123,11 @@ public class DualAudioProvider extends ContentProvider {
             Set<String> s = new HashSet<>();
             if (macs != null) {
                 for (String m : macs) {
-                    if (m != null && !m.isEmpty()) {
-                        s.add(m.toUpperCase(Locale.US));
+                    String norm = canonicalizeMac(m);
+                    if (norm != null) {
+                        s.add(norm);
+                    } else if (m != null && !m.isEmpty()) {
+                        Log.w(TAG, "setMembers: dropping malformed mac " + m);
                     }
                 }
             }
@@ -148,13 +151,44 @@ public class DualAudioProvider extends ContentProvider {
     }
 
     private void setVolume(String mac, Bundle extras) {
-        if (mac == null || mac.isEmpty() || extras == null) return;
+        if (extras == null) return;
+        String norm = canonicalizeMac(mac);
+        if (norm == null) {
+            Log.w(TAG, "setVolume: rejecting malformed mac " + mac);
+            return;
+        }
         int vol = extras.getInt(EXTRA_VOLUME, -1);
         if (vol < 0) return;
         mPrefs.edit()
-                .putInt(KEY_VOL_PREFIX + mac.toUpperCase(Locale.US), vol)
+                .putInt(KEY_VOL_PREFIX + norm, vol)
                 .apply();
         getContext().getContentResolver().notifyChange(URI_VOLUMES, null);
+    }
+
+    /**
+     * Validate and canonicalize a Bluetooth MAC string (6 hex octets
+     * separated by single colons, e.g. "AA:BB:CC:DD:EE:FF"). Returns
+     * the uppercase canonical form on match, or {@code null} on any
+     * format violation. Guards the provider against garbage strings
+     * from any CONTROL-holding caller (defense in depth; the permission
+     * itself restricts who can call).
+     */
+    private static String canonicalizeMac(String mac) {
+        if (mac == null) return null;
+        if (mac.length() != 17) return null;
+        for (int i = 0; i < 17; ++i) {
+            char c = mac.charAt(i);
+            if ((i + 1) % 3 == 0) {
+                if (c != ':') return null;
+            } else {
+                if (!((c >= '0' && c <= '9')
+                        || (c >= 'a' && c <= 'f')
+                        || (c >= 'A' && c <= 'F'))) {
+                    return null;
+                }
+            }
+        }
+        return mac.toUpperCase(Locale.US);
     }
 
     // Cursor/CRUD API not used; all ops go through call().
