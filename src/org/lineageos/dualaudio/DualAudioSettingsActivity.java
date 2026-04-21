@@ -239,7 +239,9 @@ public class DualAudioSettingsActivity extends Activity {
                     i.putExtra("mac", volMac);
                     i.putExtra("volume", progress);
                     i.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
-                    sendBroadcast(i);
+                    // Restrict delivery to receivers holding CONTROL so a
+                    // passive listener can't intercept the mac/volume extras.
+                    sendBroadcast(i, "org.lineageos.dualaudio.permission.CONTROL");
                 }
                 @Override public void onStartTrackingTouch(SeekBar sb) {}
                 @Override public void onStopTrackingTouch(SeekBar sb) {}
