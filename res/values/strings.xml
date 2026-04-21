@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dual Audio</string>
+    <string name="toggle_label">Share audio to two headsets</string>
+    <string name="toggle_summary_on">On · secondary headset will receive the same audio as the primary</string>
+    <string name="toggle_summary_off">Off · audio plays on the primary device only</string>
+    <string name="status_feature_not_available">Native side disarmed — run: setprop persist.bluetooth.a2dp.dup_active true</string>
+
+    <string name="section_devices">Headsets</string>
+    <string name="no_devices">No Bluetooth audio devices paired. Pair a headset in system Bluetooth settings to get started.</string>
+
+    <!-- Summary line templates. Passed through String.format with Locale.getDefault(). -->
+    <string name="hdr_count_zero">No headsets connected</string>
+    <string name="hdr_count_one">1 headset connected</string>
+    <string name="hdr_count_many">%1$d headsets connected</string>
+
+    <string name="sub_playing_zero">None playing audio</string>
+    <string name="sub_playing_one">1 playing audio</string>
+    <string name="sub_playing_many">%1$d playing audio</string>
+
+    <!-- Per-device status — 3-part concatenation "connection · playback · enable" -->
+    <string name="dev_connected">Connected</string>
+    <string name="dev_disconnected">Paired (not connected)</string>
+    <string name="dev_playing">Playing</string>
+    <string name="dev_idle">Idle</string>
+    <string name="dev_enabled">Included in shared audio</string>
+    <string name="dev_not_enabled">Not included</string>
+    <string name="dev_primary">Primary</string>
+
+    <string name="dev_status_fmt">%1$s · %2$s · %3$s</string>
+
+    <!-- Warning -->
+    <string name="warn_too_many">Too many devices marked for shared audio (%1$d) — audio may stutter on this hardware. Recommended: 2, max 3.</string>
+
+    <!-- Footer tip -->
+    <string name="note_stay_connected">Keep both Bluetooth headsets connected. Use system Settings → Connected devices to choose the primary (the one you first route audio to); the other will mirror.</string>
+</resources>

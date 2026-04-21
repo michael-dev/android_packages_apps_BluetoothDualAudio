@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.lineageos.dualaudio">
+
+    <!-- Settings.Global writes -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <!-- BluetoothA2dp.setActiveDevice (per-device primary selection; used
+         if we later add multi-device selector UI) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" />
+    <!-- Query connected audio devices for the picker -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_ROUTING" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.DeviceDefault.DayNight">
+
+        <activity
+            android:name=".DualAudioSettingsActivity"
+            android:label="@string/app_name"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".SetCodecReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="org.lineageos.dualaudio.SET_CODEC" />
+                <action android:name="org.lineageos.dualaudio.SET_ACTIVE" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".DualAudioTileService"
+            android:label="@string/app_name"
+            android:icon="@android:drawable/ic_menu_share"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher icon foreground: two overlapping headphones in white.
+  108dp × 108dp canvas with 72dp × 72dp safe zone (content centered in
+  the middle 2/3). Paths are pure fill — no strokes — so the icon
+  renders consistently across DPIs and adaptive-icon mask shapes.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Rear (left) headphone, slightly transparent to imply depth. -->
+    <group
+        android:translateX="30"
+        android:translateY="34">
+        <!-- Headband arc. -->
+        <path
+            android:fillColor="#CCFFFFFF"
+            android:pathData="M24,0 C10.75,0 0,10.75 0,24 L0,34 C0,35.66 1.34,37 3,37 L6,37 C7.66,37 9,35.66 9,34 L9,24 C9,15.72 15.72,9 24,9 C32.28,9 39,15.72 39,24 L39,34 C39,35.66 40.34,37 42,37 L45,37 C46.66,37 48,35.66 48,34 L48,24 C48,10.75 37.25,0 24,0 Z" />
+        <!-- Left earcup. -->
+        <path
+            android:fillColor="#CCFFFFFF"
+            android:pathData="M7,37 L2,37 C0.9,37 0,37.9 0,39 L0,47 C0,48.1 0.9,49 2,49 L7,49 C8.1,49 9,48.1 9,47 L9,39 C9,37.9 8.1,37 7,37 Z" />
+        <!-- Right earcup. -->
+        <path
+            android:fillColor="#CCFFFFFF"
+            android:pathData="M46,37 L41,37 C39.9,37 39,37.9 39,39 L39,47 C39,48.1 39.9,49 41,49 L46,49 C47.1,49 48,48.1 48,47 L48,39 C48,37.9 47.1,37 46,37 Z" />
+    </group>
+
+    <!-- Front (right) headphone, full opacity, offset +/- for overlap. -->
+    <group
+        android:translateX="42"
+        android:translateY="46">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M24,0 C10.75,0 0,10.75 0,24 L0,34 C0,35.66 1.34,37 3,37 L6,37 C7.66,37 9,35.66 9,34 L9,24 C9,15.72 15.72,9 24,9 C32.28,9 39,15.72 39,24 L39,34 C39,35.66 40.34,37 42,37 L45,37 C46.66,37 48,35.66 48,34 L48,24 C48,10.75 37.25,0 24,0 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M7,37 L2,37 C0.9,37 0,37.9 0,39 L0,47 C0,48.1 0.9,49 2,49 L7,49 C8.1,49 9,48.1 9,47 L9,39 C9,37.9 8.1,37 7,37 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M46,37 L41,37 C39.9,37 39,37.9 39,39 L39,47 C39,48.1 39.9,49 41,49 L46,49 C47.1,49 48,48.1 48,47 L48,39 C48,37.9 47.1,37 46,37 Z" />
+    </group>
+</vector>
