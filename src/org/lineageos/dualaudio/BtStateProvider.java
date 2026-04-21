@@ -16,6 +16,9 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothUuid;
 import android.content.Context;
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.util.Log;
@@ -67,6 +70,20 @@ public final class BtStateProvider {
     private final Context mCtx;
     private BluetoothA2dp mA2dp;
     private Callback mCallback;
+    private final Handler mMain = new Handler(Looper.getMainLooper());
+    private final ContentObserver mVolumeObserver =
+            new ContentObserver(mMain) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    // Coordinator pushed a new per-peer volume — either from
+                    // the headset button (peer-initiated AVRCP) or from our
+                    // own setPeerVolume round-trip. Refresh so the SeekBar
+                    // reflects it live.
+                    if (mCallback != null && mA2dp != null) {
+                        mCallback.onDevicesUpdated(snapshot());
+                    }
+                }
+            };
 
     public BtStateProvider(Context ctx) {
         mCtx = ctx.getApplicationContext();
@@ -87,6 +104,12 @@ public final class BtStateProvider {
             return;
         }
         adapter.getProfileProxy(mCtx, mProxyListener, BluetoothProfile.A2DP);
+        try {
+            mCtx.getContentResolver().registerContentObserver(
+                    DualAudioProvider.URI_VOLUMES, true, mVolumeObserver);
+        } catch (Throwable t) {
+            Log.w(TAG, "registerContentObserver(URI_VOLUMES) failed", t);
+        }
     }
 
     public void stop() {
@@ -96,6 +119,10 @@ public final class BtStateProvider {
                 bm.getAdapter().closeProfileProxy(BluetoothProfile.A2DP, mA2dp);
             }
             mA2dp = null;
+        }
+        try {
+            mCtx.getContentResolver().unregisterContentObserver(mVolumeObserver);
+        } catch (Throwable ignored) {
         }
         mCallback = null;
     }
