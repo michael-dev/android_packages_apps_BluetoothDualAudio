@@ -52,6 +52,20 @@
             </intent-filter>
         </receiver>
 
+        <!--
+          Signature-gated persistence for the per-device members list and
+          per-peer AVRCP volumes. Only the app itself and the coordinator
+          in the Bluetooth APEX (both platform-signed) pass the permission
+          check; every other caller gets SecurityException on call(). See
+          DualAudioProvider.java for the call()-based API.
+        -->
+        <provider
+            android:name=".DualAudioProvider"
+            android:authorities="org.lineageos.dualaudio.provider"
+            android:permission="org.lineageos.dualaudio.permission.CONTROL"
+            android:exported="true"
+            android:grantUriPermissions="false" />
+
         <service
             android:name=".DualAudioTileService"
             android:label="@string/app_name"

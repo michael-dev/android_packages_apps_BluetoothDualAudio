@@ -9,10 +9,12 @@ package org.lineageos.dualaudio;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
@@ -23,20 +25,10 @@ public final class DualAudioPref {
     public static final String KEY_ENABLED = "a2dp_dup_active";
 
     /**
-     * Settings.Global key for the per-device include list. Comma-separated
-     * uppercase MAC **suffixes** — last 5 chars, e.g. "AA:3D,91:26".
-     * Empty / unset means "no explicit filter — promote all connected
-     * non-active A2DP peers". Non-empty means "only these suffixes".
-     *
-     * Suffix-only (not the full MAC) because Settings.Global is
-     * world-readable by every app with no permission; storing full MACs
-     * would leak paired-device identifiers. Coordinator matches on
-     * suffix anyway (Android per-process MAC anonymization leaves the
-     * last two octets invariant).
-     *
-     * Read by DualAudioCoordinator.autoPromoteConnectedPeers().
+     * Per-device include list now lives in {@link DualAudioProvider}
+     * (signature-protected). The old {@code a2dp_dup_members} Settings.Global
+     * key is no longer used.
      */
-    public static final String KEY_MEMBERS = "a2dp_dup_members";
 
     /** Legacy sysprop path. Read-only from the app side. */
     public static final String SYSPROP_ENABLED = "persist.bluetooth.a2dp.dup_active";
@@ -76,37 +68,39 @@ public final class DualAudioPref {
     }
 
     /**
-     * True iff the filter key in Settings.Global has never been written
-     * (null). In that state the coordinator promotes all connected
-     * non-active peers.
+     * True iff the include-list has never been explicitly set. In that
+     * state the coordinator promotes all connected non-active peers.
      */
     public static boolean isFilterUnset(Context ctx) {
-        return Settings.Global.getString(ctx.getContentResolver(), KEY_MEMBERS) == null;
+        Bundle b = callProvider(ctx, DualAudioProvider.METHOD_GET_MEMBERS, null, null);
+        return b != null && b.getBoolean(DualAudioProvider.EXTRA_UNSET, false);
     }
 
     /**
-     * Last-5-chars uppercase suffix of a MAC (e.g. "AA:3D"). The
-     * coordinator uses the same value for cross-process matching since
-     * the first four octets are per-process-anonymized on modern Android.
+     * Normalize a MAC to uppercase form — used as the storage/matching key.
+     * Full MAC (not the suffix) because the provider is permission-gated.
      */
-    public static String macSuffix(String mac) {
-        if (mac == null || mac.length() < 5) return "";
-        return mac.substring(mac.length() - 5).toUpperCase(Locale.US);
+    public static String normalizeMac(String mac) {
+        return mac == null ? "" : mac.toUpperCase(Locale.US);
     }
 
     /**
-     * Returns the set of MAC suffixes explicitly in the include list.
-     * Returns empty set both when the filter is unset AND when the list
-     * is the empty string — use {@link #isFilterUnset(Context)} to
+     * Returns the set of MACs explicitly in the include list. Returns
+     * empty set both when the filter is unset AND when the list is
+     * explicitly empty — use {@link #isFilterUnset(Context)} to
      * distinguish.
      */
     public static Set<String> getIncludedDeviceMacs(Context ctx) {
-        String csv = Settings.Global.getString(ctx.getContentResolver(), KEY_MEMBERS);
-        if (csv == null || csv.isEmpty()) return Collections.emptySet();
+        Bundle b = callProvider(ctx, DualAudioProvider.METHOD_GET_MEMBERS, null, null);
+        if (b == null || b.getBoolean(DualAudioProvider.EXTRA_UNSET, false)) {
+            return Collections.emptySet();
+        }
+        ArrayList<String> macs = b.getStringArrayList(DualAudioProvider.EXTRA_MACS);
+        if (macs == null || macs.isEmpty()) return Collections.emptySet();
         Set<String> out = new HashSet<>();
-        for (String entry : csv.split(",")) {
-            String s = macSuffix(entry.trim());
-            if (!s.isEmpty()) out.add(s);
+        for (String m : macs) {
+            String n = normalizeMac(m);
+            if (!n.isEmpty()) out.add(n);
         }
         return out;
     }
@@ -114,8 +108,7 @@ public final class DualAudioPref {
     /** Whether device with {@code mac} is currently included for shared audio. */
     public static boolean isDeviceIncluded(Context ctx, String mac) {
         if (isFilterUnset(ctx)) return true;  // unset → all included
-        Set<String> included = getIncludedDeviceMacs(ctx);
-        return included.contains(macSuffix(mac));
+        return getIncludedDeviceMacs(ctx).contains(normalizeMac(mac));
     }
 
     /**
@@ -123,7 +116,8 @@ public final class DualAudioPref {
      * {@code allOtherMacs} snapshot so that when the user flips the FIRST
      * switch OFF from the "unset / all included" state, we materialize
      * the list as "all others except this one" (matching UI expectations).
-     * The list is persisted as MAC suffixes only.
+     * The list is persisted through {@link DualAudioProvider} so full
+     * MACs stay private.
      *
      * If {@code allOtherMacs} is null, the list is built as "just {mac}"
      * when included=true or cleared to "" when included=false.
@@ -131,7 +125,7 @@ public final class DualAudioPref {
     public static void setDeviceIncluded(Context ctx, String mac,
                                          boolean included,
                                          Set<String> allOtherMacs) {
-        String norm = macSuffix(mac);
+        String norm = normalizeMac(mac);
         if (norm.isEmpty()) return;
 
         boolean unset = isFilterUnset(ctx);
@@ -141,12 +135,11 @@ public final class DualAudioPref {
                 // Already-on-by-default; no transition needed.
                 return;
             }
-            // Materialize: filter becomes "all currently-connected other
-            // MAC suffixes".
+            // Materialize: filter becomes "all currently-connected other MACs".
             current = new HashSet<>();
             if (allOtherMacs != null) {
                 for (String m : allOtherMacs) {
-                    String s = macSuffix(m);
+                    String s = normalizeMac(m);
                     if (!s.isEmpty()) current.add(s);
                 }
             }
@@ -156,16 +149,33 @@ public final class DualAudioPref {
             else current.remove(norm);
         }
 
-        String csv = String.join(",", current);
-        try {
-            Settings.Global.putString(ctx.getContentResolver(), KEY_MEMBERS, csv);
-        } catch (SecurityException se) {
-            Log.e("DualAudio", "setDeviceIncluded: SecurityException", se);
-        }
+        Bundle extras = new Bundle();
+        extras.putStringArrayList(DualAudioProvider.EXTRA_MACS, new ArrayList<>(current));
+        callProvider(ctx, DualAudioProvider.METHOD_SET_MEMBERS, null, extras);
     }
 
     /** Legacy 2-arg helper (no snapshot). */
     public static void setDeviceIncluded(Context ctx, String mac, boolean included) {
         setDeviceIncluded(ctx, mac, included, null);
+    }
+
+    /**
+     * Thin wrapper around ContentResolver.call() with SecurityException
+     * swallowed: in rare boot-race cases the provider's owning process
+     * might be spinning up; callers treat null as "state not available
+     * yet" and retry on the next refresh.
+     */
+    private static Bundle callProvider(Context ctx, String method,
+                                       String arg, Bundle extras) {
+        try {
+            return ctx.getContentResolver().call(
+                    DualAudioProvider.URI, method, arg, extras);
+        } catch (SecurityException se) {
+            Log.e("DualAudio", "callProvider(" + method + "): SecurityException", se);
+            return null;
+        } catch (Throwable t) {
+            Log.w("DualAudio", "callProvider(" + method + ") failed", t);
+            return null;
+        }
     }
 }
