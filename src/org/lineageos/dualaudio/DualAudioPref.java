@@ -1,5 +1,5 @@
 /*
- * SM-X205 dual-A2DP app — Settings helpers.
+ * BluetoothDualAudio — Settings helpers.
  *
  * Central read/write of Java-side enable flag (Settings.Global) plus
  * per-device inclusion list (SharedPreferences).

@@ -1,5 +1,5 @@
 /*
- * SM-X205 dual-A2DP app — Quick Settings tile.
+ * BluetoothDualAudio — Quick Settings tile.
  *
  * Tap to toggle Settings.Global.a2dp_dup_active. Tile state reflects the
  * current value. Long-press opens DualAudioSettingsActivity.

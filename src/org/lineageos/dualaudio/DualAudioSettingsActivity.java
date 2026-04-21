@@ -1,5 +1,5 @@
 /*
- * SM-X205 dual-A2DP app — Settings Activity.
+ * BluetoothDualAudio — Settings Activity.
  *
  * - Master switch (Settings.Global.a2dp_dup_active).
  * - Per-device include toggle + status (connection / playback / active-primary).

@@ -1,5 +1,5 @@
 /*
- * SM-X205 dual-A2DP app — Bluetooth state reader.
+ * BluetoothDualAudio — Bluetooth state reader.
  *
  * Queries which bonded devices support A2DP sink role, whether each is
  * currently connected, and whether each is currently playing audio

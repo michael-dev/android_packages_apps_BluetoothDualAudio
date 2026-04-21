@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  SM-X205 Dual Audio main screen.
+  BluetoothDualAudio main screen.
   - ScrollView root so every layout (phone portrait through tablet
     landscape) works without overflow.
   - Material-styled cards for logical grouping: master toggle, status

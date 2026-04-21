@@ -1,5 +1,5 @@
 /*
- * SM-X205 dual-A2DP app — test helpers to force codec and active device.
+ * BluetoothDualAudio — test helpers to force codec and active device.
  *
  * Broadcast actions (must target component with -n):
  *
@@ -14,8 +14,8 @@
  * Accepted codec strings: SBC, AAC, aptX, aptX_HD, LDAC, LC3, Opus.
  * Needs BLUETOOTH_PRIVILEGED, which the platform-signed app has.
  *
- * Purpose: reproduce codec-mismatch dual-A2DP scenarios (Wk 7/8) without
- * having to pair a non-AAC device.
+ * Purpose: reproduce codec-mismatch dual-A2DP scenarios without having
+ * to pair a non-AAC device.
  */
 
 package org.lineageos.dualaudio;
