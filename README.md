@@ -90,7 +90,7 @@ your tree, and `m` builds the app + the patched Bluetooth APEX.
 The app is platform-signed (needs `BLUETOOTH_PRIVILEGED`). It makes
 no device-specific assumptions — any device that handles a minimum
 of two simultaneous A2DP connections at the controller level should
-work. Tested on SM-X205 (UWE5622 controller).
+work. Originally developed on Samsung Tab A8 (UWE5622 controller).
 
 ## Settings.Global keys
 
