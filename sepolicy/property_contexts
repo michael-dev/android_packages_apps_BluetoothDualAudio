@@ -1,0 +1,1 @@
+persist.bluetooth.a2dp.dup_active  u:object_r:bluetooth_dup_active_prop:s0 exact bool

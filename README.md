@@ -61,13 +61,26 @@ branch `dual-a2dp`. It adds ~10 hook-point lines to AOSP-tracked
 files plus ~5 new overlay files for the coordinator, per-peer Tx
 registry, codec coercion, and AVRCP per-peer volume dispatch.
 
+The fork also ships a companion product makefile
+(`packages/modules/Bluetooth/dual-a2dp.mk`) that seeds the
+`persist.bluetooth.a2dp.dup_active=true` sysprop — the native-side
+arming flag (see [Sysprops](#sysprops)). Setting the default there
+means the prop is `true` iff the patched APEX is actually installed,
+which is the exact semantic `isNativeSideArmed()` checks for.
+
 ## Device integration
 
-Three entries in your device tree wire it in:
+Wire it in from your device tree:
 
 ```makefile
 # device.mk
 PRODUCT_PACKAGES += BluetoothDualAudio
+$(call inherit-product, packages/modules/Bluetooth/dual-a2dp.mk)
+```
+
+```makefile
+# BoardConfig.mk
+SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += packages/apps/BluetoothDualAudio/sepolicy
 ```
 
 ```json
@@ -100,6 +113,35 @@ work. Originally developed on Samsung Tab A8 (UWE5622 controller).
 | `a2dp_dup_members` | string CSV | Uppercase MAC list of peers explicitly included as secondaries. Null = "promote all". Empty "" = "promote none". |
 | `a2dp_dup_coerce_codec` | int 0 / 1 | When 1: reconfigure all mismatched peers to SBC on enable; restore on disable. |
 | `a2dp_dup_peer_volumes` | string CSV | Published by the coordinator: `MAC:volume,...`, volume 0..15. Read by the app for slider initial position. |
+
+## Sysprops
+
+| Prop | Type | Meaning |
+|---|---|---|
+| `persist.bluetooth.a2dp.dup_active` | bool | Native-side arming flag. Fluoride's dual-writer in the Bluetooth APEX gates on this directly from the stream thread; `Settings.Global.a2dp_dup_active` is the UI-facing master switch, this is the platform capability gate. Default seeded to `true` by the Bluetooth fork's `dual-a2dp.mk`, since the fork's presence is exactly what the flag is claiming. Persisted across reboots; can be toggled via `adb shell setprop` (see SELinux section). |
+
+## SELinux
+
+The `sepolicy/` directory declares `bluetooth_dup_active_prop` (via
+`system_public_prop`) and labels the sysprop above with it. Without the
+dedicated label the prop falls under the upstream `persist.bluetooth.`
+→ `bluetooth_prop` prefix rule, which `platform_app` cannot read — the
+settings UI would then always display "native side disarmed" even when
+the stack is armed and audio is duplicating. Using a purpose-named
+public type fixes the UI without broadening access to the full
+`bluetooth_prop` bucket.
+
+`system_public_prop` only exempts the type from the cross-partition
+neverallow; read access is granted explicitly with `get_prop` for the
+two consumers (`bluetooth` — native coordinator; `platform_app` — the
+UI). The `shell` domain also gets `set_prop` so the escape-hatch
+instruction shown by the disarmed warning (`setprop
+persist.bluetooth.a2dp.dup_active true`) actually works from adb on
+the rare case the default from `dual-a2dp.mk` isn't present.
+
+Wire in via `SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS` as shown in
+[Device integration](#device-integration). Keep it co-located with the
+app so any device that picks up the app picks up the label too.
 
 ## Broadcast actions
 
