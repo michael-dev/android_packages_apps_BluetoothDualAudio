@@ -11,6 +11,8 @@ package org.lineageos.dualaudio;
 
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothCodecConfig;
+import android.bluetooth.BluetoothCodecStatus;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -23,7 +25,6 @@ import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.util.Log;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -160,10 +161,9 @@ public final class BtStateProvider {
 
         BluetoothDevice activeDevice = null;
         try {
-            // getActiveDevices is @SystemApi.
-            Method m = BluetoothA2dp.class.getMethod("getActiveDevice");
-            activeDevice = (BluetoothDevice) m.invoke(mA2dp);
-        } catch (Throwable ignored) {
+            List<BluetoothDevice> actives = adapter.getActiveDevices(BluetoothProfile.A2DP);
+            if (!actives.isEmpty()) activeDevice = actives.get(0);
+        } catch (RuntimeException ignored) {
         }
 
         try {
@@ -193,10 +193,8 @@ public final class BtStateProvider {
                 boolean playing = false;
                 if (connected) {
                     try {
-                        Method pm = BluetoothA2dp.class.getMethod("isA2dpPlaying", BluetoothDevice.class);
-                        Object b = pm.invoke(mA2dp, d);
-                        if (b instanceof Boolean) playing = (Boolean) b;
-                    } catch (Throwable ignored) {
+                        playing = mA2dp.isA2dpPlaying(d);
+                    } catch (RuntimeException ignored) {
                     }
                 }
                 boolean isActive = activeDevice != null && activeDevice.equals(d);
@@ -231,7 +229,7 @@ public final class BtStateProvider {
     }
 
     /**
-     * Reflectively call BluetoothA2dp.getCodecStatus(device) (requires
+     * Call BluetoothA2dp.getCodecStatus(device) (requires
      * BLUETOOTH_PRIVILEGED which we have as a platform-signed app).
      * Returns a short human-readable codec description of the form
      * "AAC 44.1k 320kbps", or "" on any failure.
@@ -239,29 +237,27 @@ public final class BtStateProvider {
     private String queryCodec(BluetoothDevice d) {
         if (mA2dp == null) return "";
         try {
-            Method m = BluetoothA2dp.class.getMethod("getCodecStatus", BluetoothDevice.class);
-            Object status = m.invoke(mA2dp, d);
+            BluetoothCodecStatus status = mA2dp.getCodecStatus(d);
             if (status == null) return "";
-            Method gc = status.getClass().getMethod("getCodecConfig");
-            Object cfg = gc.invoke(status);
+            BluetoothCodecConfig cfg = status.getCodecConfig();
             return cfg == null ? "" : describeCodec(cfg);
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             return "";
         }
     }
 
-    private static String describeCodec(Object cfg) throws Throwable {
-        int type = (int) cfg.getClass().getMethod("getCodecType").invoke(cfg);
+    private static String describeCodec(BluetoothCodecConfig cfg) {
+        int type = cfg.getCodecType();
         String name = codecName(type);
         if (name.isEmpty()) return "";
 
         StringBuilder s = new StringBuilder(name);
 
-        int sampleMask = (int) cfg.getClass().getMethod("getSampleRate").invoke(cfg);
+        int sampleMask = cfg.getSampleRate();
         String sr = sampleRateText(sampleMask);
         if (!sr.isEmpty()) s.append(' ').append(sr);
 
-        long codecSpec1 = (long) cfg.getClass().getMethod("getCodecSpecific1").invoke(cfg);
+        long codecSpec1 = cfg.getCodecSpecific1();
         // AAC: codecSpecific1 = bitrate in bits/sec (bit 31 is VBR flag).
         if (type == 1 && codecSpec1 > 0) {
             long bitrate = codecSpec1 & 0x7FFFFFFFL;
