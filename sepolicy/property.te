@@ -1,0 +1,21 @@
+# Dedicated type for the native-arm flag.  Avoids the generic
+# bluetooth_prop bucket that the flag would otherwise fall under via
+# the upstream persist.bluetooth. prefix rule — platform_app can't read
+# bluetooth_prop, and we don't want to broaden that type's access.
+#
+# system_public_prop() only exempts the type from the cross-partition
+# no_rw_file_perms neverallow; it does not grant reads.  Two consumers
+# need explicit get_prop():
+#   - bluetooth: the native coordinator in the BT APEX reads from the
+#     stream thread to gate the dup-writer path.
+#   - platform_app: the settings UI reads to show armed/disarmed state.
+system_public_prop(bluetooth_dup_active_prop)
+get_prop(bluetooth, bluetooth_dup_active_prop)
+get_prop(platform_app, bluetooth_dup_active_prop)
+
+# Dev escape hatch — the UI's disarmed-warning string tells users to
+# run "setprop persist.bluetooth.a2dp.dup_active true" from adb shell.
+# The canonical default comes from the Bluetooth fork's dual-a2dp.mk
+# (PRODUCT_PRODUCT_PROPERTIES), but shell-side override must still
+# work for manual flipping.
+set_prop(shell, bluetooth_dup_active_prop)
