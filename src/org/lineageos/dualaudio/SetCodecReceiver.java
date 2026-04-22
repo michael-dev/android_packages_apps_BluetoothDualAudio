@@ -31,8 +31,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
-import java.lang.reflect.Method;
-
 public class SetCodecReceiver extends BroadcastReceiver {
     private static final String TAG = "DualAudio.SetCodec";
 
@@ -76,24 +74,19 @@ public class SetCodecReceiver extends BroadcastReceiver {
                 BluetoothA2dp a2dp = (BluetoothA2dp) proxy;
                 try {
                     if ("org.lineageos.dualaudio.SET_ACTIVE".equals(action)) {
-                        Method m = BluetoothA2dp.class.getMethod(
-                                "setActiveDevice", BluetoothDevice.class);
-                        Object ok = m.invoke(a2dp, device);
+                        boolean ok = adapter.setActiveDevice(
+                                device, BluetoothAdapter.ACTIVE_DEVICE_AUDIO);
                         Log.i(TAG, "setActiveDevice(" + mac + ") -> " + ok);
                     } else if (codecType >= 0) {
                         BluetoothCodecConfig cfg = new BluetoothCodecConfig.Builder()
                                 .setCodecType(codecType)
                                 .setCodecPriority(BluetoothCodecConfig.CODEC_PRIORITY_HIGHEST)
                                 .build();
-                        Method m = BluetoothA2dp.class.getMethod(
-                                "setCodecConfigPreference",
-                                BluetoothDevice.class,
-                                BluetoothCodecConfig.class);
-                        m.invoke(a2dp, device, cfg);
+                        a2dp.setCodecConfigPreference(device, cfg);
                         Log.i(TAG, "setCodecConfigPreference(" + mac + ", "
                                 + intent.getStringExtra("codec") + ") dispatched");
                     }
-                } catch (Throwable t) {
+                } catch (RuntimeException t) {
                     Log.e(TAG, action + " failed", t);
                 } finally {
                     adapter.closeProfileProxy(BluetoothProfile.A2DP, a2dp);
