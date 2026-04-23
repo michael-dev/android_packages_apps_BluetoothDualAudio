@@ -32,7 +32,7 @@ overlay is the engine.
 │  Per-device toggles           │         │    a2dp_dup_members           │
 │  Volume sliders               │         │    a2dp_dup_coerce_codec      │
 │                               │         │                               │
-│  Quick Settings tile          │ BROADCAST│  SET_PEER_VOLUME receiver     │
+│  Quick Settings tile          │BROADCAST│  SET_PEER_VOLUME receiver     │
 │                               ├────────▶│  SET_CODEC / SET_ACTIVE       │
 │                               │         │    (dev helpers)              │
 │                               │         │  DUMP_STATE receiver          │
